@@ -1,0 +1,2462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wallet — Персональный учёт</title>
+  <meta name="theme-color" content="#121214" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23121214'><rect width='24' height='24' rx='6' fill='%2318181b'/><path d='M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8zm11 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2z' fill='%23ffffff'/></svg>" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS Configuration (должна идти строго после загрузки cdn.tailwindcss.com) -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          colors: {
+            wallet: {
+              bg: '#0c0c0e',
+              surface: '#16161a',
+              card: '#202024',
+              border: '#2c2c32',
+              muted: '#71717a',
+              accent: '#f4f4f5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #09090b;
+      color: #f4f4f5;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body.light-mode {
+      background-color: #f8fafc;
+      color: #000000;
+    }
+
+    /* Все контейнеры, карточки, подложки и кнопки в светлом режиме становятся чисто белыми */
+    body.light-mode header button,
+    body.light-mode .wallet-theme-card,
+    body.light-mode #slot-card-body,
+    body.light-mode #summaryCard,
+    body.light-mode #moreSubmenuContainer,
+    body.light-mode #filterBarContainer,
+    body.light-mode #currencyModal > div,
+    body.light-mode #addAccountModal > div,
+    body.light-mode #editAccountModal > div,
+    body.light-mode [id^="acc-menu-"],
+    body.light-mode .wallet-theme-subcard,
+    body.light-mode #accountsListContainer > div,
+    body.light-mode #journalContainer > div > div,
+    body.light-mode #miniAccountsBar > button,
+    body.light-mode #categoriesEditorList > div {
+      background-color: #ffffff !important;
+      background-image: none !important;
+      border-color: #e2e8f0 !important;
+      color: #000000 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    /* Все поля ввода и выпадающие списки */
+    body.light-mode input,
+    body.light-mode select,
+    body.light-mode textarea {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #000000 !important;
+    }
+    body.light-mode input::placeholder {
+      color: #94a3b8 !important;
+    }
+
+    /* Вспомогательные кнопки в подменю, экспорте и фильтрах */
+    body.light-mode #subtab-btn-accounts.bg-zinc-800,
+    body.light-mode #subtab-btn-reminders.bg-zinc-800,
+    body.light-mode #subtab-btn-additional.bg-zinc-800 {
+      background-color: #ea580c !important;
+      color: #ffffff !important;
+      border-color: #ea580c !important;
+    }
+
+    /* 1) Кнопка «+ Новый счёт» в дневном режиме: белый фон, серый шрифт, серая рамка */
+    body.light-mode #subpane-accounts button[onclick="openModal('addAccountModal')"] {
+      background-color: #ffffff !important;
+      color: #64748b !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    body.light-mode #subpane-accounts button[onclick="openModal('addAccountModal')"]:hover {
+      background-color: #f8fafc !important;
+      color: #475569 !important;
+      border-color: #94a3b8 !important;
+    }
+
+    /* 2) Кнопки переключения валюты счёта (общ / ru / us) в дневном режиме */
+    body.light-mode button[onclick^="cycleAccountCurrencyScope"] {
+      background-color: #ffffff !important;
+    }
+    body.light-mode button[onclick^="cycleAccountCurrencyScope"].scope-btn-all {
+      color: #334155 !important;
+      border-color: #94a3b8 !important;
+    }
+    body.light-mode button[onclick^="cycleAccountCurrencyScope"].scope-btn-ru {
+      color: #166534 !important;
+      border-color: #15803d !important;
+    }
+    body.light-mode button[onclick^="cycleAccountCurrencyScope"].scope-btn-us {
+      color: #1e40af !important;
+      border-color: #2563eb !important;
+    }
+
+    /* 3) Кнопка «+» добавления категории в дневном режиме: оранжевый фон */
+    body.light-mode form[onsubmit="addCustomCategory(event)"] button[type="submit"] {
+      background-color: #ea580c !important;
+      color: #ffffff !important;
+      border-color: #ea580c !important;
+    }
+    body.light-mode form[onsubmit="addCustomCategory(event)"] button[type="submit"]:hover {
+      background-color: #c2410c !important;
+      border-color: #c2410c !important;
+    }
+
+    /* 4) Кнопки «Установить лимит» и «Снять» */
+    body.light-mode #btnSaveAccountLimit {
+      background-color: rgba(202, 138, 4, 0.45) !important;
+      border: 1px solid #ca8a04 !important;
+      color: #000000 !important;
+      backdrop-blur: 4px;
+    }
+    body.light-mode #btnSaveAccountLimit:hover {
+      background-color: rgba(202, 138, 4, 0.6) !important;
+    }
+    body.light-mode #btnClearAccountLimit {
+      background-color: #64748b !important;
+      border-color: #94a3b8 !important;
+      color: #ffffff !important;
+    }
+    body.light-mode #btnClearAccountLimit:hover {
+      background-color: #475569 !important;
+      color: #ffffff !important;
+    }
+
+    /* Активная кнопка фильтра журнала (Все / Доходы / Расходы) в дневном режиме: светло-оранжевая с обводкой */
+    body.light-mode #filterBarContainer button.bg-zinc-700 {
+      background-color: #ffedd5 !important;
+      color: #c2410c !important;
+      border: 1px solid #fb923c !important;
+    }
+
+    body.light-mode #pane-analytics .border-t button,
+    body.light-mode #pane-analytics .border-t label,
+    body.light-mode #btnConfirmCurrency,
+    body.light-mode #btnRequestPermission,
+    body.light-mode #accountIconPicker button,
+    body.light-mode #editAccountIconPicker button,
+    body.light-mode #currencyBadgeBtn {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #000000 !important;
+    }
+
+    body.light-mode #accountIconPicker button.bg-zinc-800,
+    body.light-mode #editAccountIconPicker button.bg-zinc-800 {
+      background-color: #f1f5f9 !important;
+      border-color: #000000 !important;
+    }
+
+    body.light-mode p,
+    body.light-mode span,
+    body.light-mode label,
+    body.light-mode h3,
+    body.light-mode h4,
+    body.light-mode div,
+    body.light-mode blockquote {
+      color: #000000 !important;
+    }
+
+    /* Акцентные цвета статусов и сумм */
+    body.light-mode .text-green-500,
+    body.light-mode #mainMonthIncome,
+    body.light-mode #recentIncomeList span.text-green-500 {
+      color: #15803d !important;
+    }
+    body.light-mode .text-orange-400,
+    body.light-mode #mainMonthExpense,
+    body.light-mode #recentExpenseList span.text-orange-400 {
+      color: #c2410c !important;
+    }
+    body.light-mode .text-red-400,
+    body.light-mode .text-red-500,
+    body.light-mode #recentExpenseList span.text-red-400 {
+      color: #b91c1c !important;
+    }
+
+    /* Исчерпанная батарейка лимита в дневном режиме */
+    body.light-mode [title*="Лимит исчерпан"] {
+      background-color: #fee2e2 !important;
+      border-color: #fca5a5 !important;
+      color: #b91c1c !important;
+    }
+    body.light-mode [title*="Лимит исчерпан"] span {
+      color: #b91c1c !important;
+    }
+
+    /* Наведение на кнопку "Другая" в дневном режиме: бледно-серый вместо белого */
+    body.light-mode #wisdomQuoteText ~ div button:hover,
+    body.light-mode button[onclick="rotateWisdomPreview()"]:hover {
+      color: #64748b !important;
+    }
+
+    /* Тёмный режим: шрифт в графах-ячейках кошелька — благородный светло-серый */
+    body:not(.light-mode) .wallet-slot-tab span {
+      color: #d4d4d8 !important;
+      font-weight: 500;
+    }
+
+    /* Приглушённый цвет иконки трёх точек */
+    body.light-mode #tab-btn-more svg {
+      color: #64748b !important;
+    }
+    body:not(.light-mode) #tab-btn-more.inactive-slot svg {
+      color: #71717a !important;
+    }
+    body:not(.light-mode) #tab-btn-more.active-slot svg {
+      color: #d4d4d8 !important;
+    }
+
+    /* Подложка переключателя Расходы/Доходы в категориях в дневном режиме — белая */
+    body.light-mode #subpane-additional .bg-zinc-950.rounded-lg.p-0\.5 {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    /* Всплывающий кусочек уведомлений (Toast) в дневном режиме */
+    body.light-mode #toastMessage {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Бейдж заблокированных push-уведомлений в дневном режиме — мягкий бледно-жёлтый */
+    body.light-mode #badgePushPermission.bg-red-950\/80,
+    body.light-mode #badgePushPermission[data-denied="true"] {
+      background-color: #fef9c3 !important;
+      border-color: #fde047 !important;
+      color: #854d0e !important;
+    }
+
+    /* Цвет активных кнопок сохранения/добавления */
+    body.light-mode #incomeForm button[type="submit"] {
+      background-color: #15803d !important;
+      color: #ffffff !important;
+      border-color: #15803d !important;
+    }
+    body.light-mode #expenseForm button[type="submit"] {
+      background-color: #ea580c !important;
+      color: #ffffff !important;
+      border-color: #ea580c !important;
+    }
+    body.light-mode #summaryCard #totalTxCount {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #000000 !important;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 4px;
+    }
+    body.light-mode ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+    }
+
+    .wallet-slot-tab {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: top center;
+    }
+    .wallet-slot-tab:hover {
+      filter: brightness(1.08);
+    }
+    .wallet-slot-tab.active-slot {
+      box-shadow: 0 -8px 25px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      z-index: 20;
+    }
+    body.light-mode .wallet-slot-tab.active-slot {
+      box-shadow: 0 -6px 20px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    }
+    .wallet-slot-tab.inactive-slot {
+      opacity: 0.75;
+      filter: saturate(0.85);
+    }
+
+    .tab-content {
+      animation: fadeIn 0.24s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    input, select, textarea {
+      user-select: text;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between selection:bg-zinc-700 selection:text-white">
+
+  <!-- Основной контейнер приложения -->
+  <main class="w-full max-w-lg mx-auto p-4 sm:p-6 flex-1 flex flex-col">
+    
+    <!-- Шапка кошелька: Переключатель темы (вместо даты), центрированный Wallet ru/us и кнопка Забота -->
+    <header class="relative flex items-center justify-between py-3 mb-4">
+      <div class="w-24">
+        <!-- Кнопка переключения темы Light/Dark -->
+        <button onclick="toggleTheme()" id="themeToggleBtn" title="Переключить тему (Светлая / Тёмная)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900/90 text-xs font-medium text-zinc-300 hover:text-white hover:border-zinc-700 transition active:scale-95 shadow-sm">
+          <span id="themeToggleIcon">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </span>
+          <span id="themeToggleText" class="text-[11px] font-mono">Тема</span>
+        </button>
+      </div>
+
+      <!-- Центральный логотип Wallet с кнопкой смены валюты ru/us -->
+      <div class="flex items-baseline justify-center select-none">
+        <span class="text-xl font-bold tracking-tight text-zinc-100" id="brandLogoText">Wallet</span>
+        <button onclick="openCurrencyModal()" id="currencyBadgeBtn" title="Сменить валюту и конвертировать баланс" class="ml-1 text-[11px] font-mono font-medium lowercase text-zinc-300 hover:text-white bg-zinc-800/90 hover:bg-zinc-700/90 border border-zinc-700/70 hover:border-zinc-500 px-1.5 py-0.5 rounded-md leading-none transition shadow-sm cursor-pointer active:scale-95">
+          <span id="currentCurrencyLabel">ru</span>
+        </button>
+      </div>
+
+      <div class="w-24 flex justify-end">
+        <button onclick="switchTab('more'); switchMoreSubTab('reminders');" title="Настройки уведомлений" class="flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition">
+          <span id="notifStatusDot" class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+          <span id="notifStatusText">Забота</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Сводка баланса -->
+    <section id="summaryCard" class="relative overflow-hidden rounded-2xl bg-gradient-to-b from-zinc-800/80 to-zinc-900/90 border border-zinc-700/50 p-5 mb-5 shadow-2xl backdrop-blur-md transition-colors">
+      <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/[0.02] rounded-full blur-xl pointer-events-none"></div>
+      <div class="flex justify-between items-start mb-2">
+        <span class="text-xs font-medium text-zinc-400 uppercase tracking-widest" id="capitalLabel">Общий капитал</span>
+        <button onclick="switchTab('analytics')" id="totalTxCount" title="Открыть журнал операций" class="text-[10px] font-mono uppercase bg-zinc-800/80 hover:bg-zinc-700/90 text-zinc-400 hover:text-zinc-200 px-2 py-0.5 rounded border border-zinc-700 transition cursor-pointer active:scale-95">0 записей</button>
+      </div>
+      <div class="flex items-baseline space-x-2">
+        <span class="text-3xl sm:text-4xl font-semibold tracking-tight text-white transition-colors duration-300" id="mainTotalBalance">0</span>
+        <span class="text-zinc-400 font-light text-lg currency-symbol-label">₽</span>
+      </div>
+
+      <!-- Быстрая лента счетов -->
+      <div id="miniAccountsBar" class="mt-3.5 flex gap-2 overflow-x-auto pb-1"></div>
+
+      <!-- Сводка Доходы/Расходы за месяц -->
+      <div class="mt-3.5 pt-3 border-t border-zinc-800/80 grid grid-cols-2 gap-4" id="monthSummaryBorder">
+        <div>
+          <div class="flex items-center text-[11px] text-zinc-400 gap-1.5 mb-0.5">
+            <span class="w-2 h-2 rounded-full bg-green-700 ring-2 ring-green-900/50"></span> Доходы (мес)
+          </div>
+          <div class="text-sm font-semibold text-green-500 tracking-tight" id="mainMonthIncome">+0 ₽</div>
+        </div>
+        <div>
+          <div class="flex items-center text-[11px] text-zinc-400 gap-1.5 mb-0.5">
+            <span class="w-2 h-2 rounded-full bg-orange-500 ring-2 ring-orange-950/60" id="mainMonthExpenseDot"></span> Расходы (мес)
+          </div>
+          <div class="text-sm font-semibold text-orange-400 tracking-tight transition-colors duration-300" id="mainMonthExpense">-0 ₽</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- МЕТАФОРА КОШЕЛЬКА: 4 Ячейки -->
+    <div class="flex flex-col flex-1">
+      
+      <!-- Ярлычки / Срезы карт кошелька -->
+      <nav class="flex space-x-1.5 px-1 -mb-px z-10 overflow-x-auto pb-1" aria-label="Ячейки кошелька">
+        
+        <!-- Ячейка 1: Доход -->
+        <button onclick="switchTab('income')" id="tab-btn-income" class="wallet-slot-tab active-slot flex-1 min-w-[70px] py-2.5 px-2 rounded-t-xl bg-[#1c1c20] border-t border-x border-zinc-700 text-center text-xs font-medium text-zinc-200 flex flex-col items-center gap-1">
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+          <span class="truncate">Доход</span>
+        </button>
+
+        <!-- Ячейка 2: Расход -->
+        <button onclick="switchTab('expense')" id="tab-btn-expense" class="wallet-slot-tab inactive-slot flex-1 min-w-[70px] py-2.5 px-2 rounded-t-xl bg-[#141417] border-t border-x border-zinc-800 text-center text-xs font-medium text-zinc-400 flex flex-col items-center gap-1">
+          <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M20 12H4"/></svg>
+          <span class="truncate">Расход</span>
+        </button>
+
+        <!-- Ячейка 3: Журнал -->
+        <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="wallet-slot-tab inactive-slot flex-1 min-w-[70px] py-2.5 px-2 rounded-t-xl bg-[#141417] border-t border-x border-zinc-800 text-center text-xs font-medium text-zinc-400 flex flex-col items-center gap-1">
+          <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span class="truncate">Журнал</span>
+        </button>
+
+        <!-- Ячейка 4: Только три точки по центру без текста -->
+        <button onclick="switchTab('more')" id="tab-btn-more" title="Параметры и управление" class="wallet-slot-tab inactive-slot flex-1 min-w-[70px] py-2.5 px-2 rounded-t-xl bg-[#141417] border-t border-x border-zinc-800 text-center flex items-center justify-center">
+          <svg class="w-5 h-5 text-zinc-500 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="5" cy="12" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="19" cy="12" r="2"/>
+          </svg>
+        </button>
+      </nav>
+
+      <!-- Тело открытой ячейки кошелька -->
+      <div id="slot-card-body" class="relative rounded-b-2xl rounded-tr-2xl bg-[#1c1c20] border border-zinc-700/80 p-5 shadow-2xl flex-1 flex flex-col min-h-[440px] transition-colors">
+        
+        <!-- =================== ЯЧЕЙКА 1: ДОХОД =================== -->
+        <div id="pane-income" class="tab-content flex-1 flex flex-col justify-between">
+          <form id="incomeForm" onsubmit="handleTransactionSubmit(event, 'income')" class="space-y-3.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs uppercase tracking-wider font-semibold text-green-500">Вложить в кошелёк</span>
+              <span class="text-[11px] text-zinc-500">Поступление (<span class="currency-symbol-label">₽</span>)</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1">Сумма дохода</label>
+              <div class="relative">
+                <input type="number" step="any" required id="incomeAmount" placeholder="0.00" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-4 py-2.5 text-lg font-semibold text-white placeholder-zinc-600 focus:outline-none focus:border-green-700 focus:ring-1 focus:ring-green-700" />
+                <span class="absolute right-3.5 top-3 text-zinc-500 font-medium currency-symbol-label">₽</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Счёт зачисления</label>
+                <select id="incomeAccount" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-green-700"></select>
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="block text-xs font-medium text-zinc-400">Категория</label>
+                  <button type="button" onclick="switchTab('more'); switchMoreSubTab('additional'); switchCategoryEditorType('income');" class="text-[10px] text-zinc-500 hover:text-zinc-300">Изм.</button>
+                </div>
+                <select id="incomeCategory" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-green-700"></select>
+              </div>
+            </div>
+
+            <!-- Регулярность операции и Дата (максимум — сегодняшний день) -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Регулярность</label>
+                <select id="incomeRecurrence" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-green-700">
+                  <option value="once">Разовая</option>
+                  <option value="daily">Каждый день</option>
+                  <option value="weekly">Раз в неделю</option>
+                  <option value="monthly">Раз в месяц</option>
+                  <option value="yearly">Раз в год</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Дата</label>
+                <input type="date" id="incomeDate" required class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-green-700" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1">Комментарий</label>
+              <input type="text" id="incomeNote" placeholder="Премия, проект..." class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-green-700" />
+            </div>
+
+            <button type="submit" class="w-full mt-2 py-3 bg-[#15803d] hover:bg-[#166534] text-white font-medium rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-green-950/60 border border-green-700/50 active:scale-[0.99]">
+              + Зачислить доход
+            </button>
+          </form>
+
+          <div class="mt-4 pt-3 border-t border-zinc-800">
+            <span class="text-[11px] font-medium text-zinc-500 uppercase">Последние поступления</span>
+            <div id="recentIncomeList" class="mt-1 space-y-1 text-xs"></div>
+          </div>
+        </div>
+
+        <!-- =================== ЯЧЕЙКА 2: РАСХОД =================== -->
+        <div id="pane-expense" class="tab-content hidden flex-1 flex flex-col justify-between">
+          <form id="expenseForm" onsubmit="handleTransactionSubmit(event, 'expense')" class="space-y-3.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs uppercase tracking-wider font-semibold text-orange-400">Достать из кошелька</span>
+              <span class="text-[11px] text-zinc-500">Списание (<span class="currency-symbol-label">₽</span>)</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1">Сумма расхода</label>
+              <div class="relative">
+                <input type="number" step="any" required id="expenseAmount" placeholder="0.00" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-4 py-2.5 text-lg font-semibold text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
+                <span class="absolute right-3.5 top-3 text-zinc-500 font-medium currency-symbol-label">₽</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Списать со счёта</label>
+                <select id="expenseAccount" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-orange-500"></select>
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="block text-xs font-medium text-zinc-400">Категория</label>
+                  <button type="button" onclick="switchTab('more'); switchMoreSubTab('additional'); switchCategoryEditorType('expense');" class="text-[10px] text-zinc-500 hover:text-zinc-300">Изм.</button>
+                </div>
+                <select id="expenseCategory" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-orange-500"></select>
+              </div>
+            </div>
+
+            <!-- Регулярность операции и Дата (максимум — сегодняшний день) -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Регулярность</label>
+                <select id="expenseRecurrence" class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-orange-500">
+                  <option value="once">Разовая</option>
+                  <option value="daily">Каждый день</option>
+                  <option value="weekly">Раз в неделю</option>
+                  <option value="monthly">Раз в месяц</option>
+                  <option value="yearly">Раз в год</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Дата</label>
+                <input type="date" id="expenseDate" required class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-orange-500" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1">Комментарий</label>
+              <input type="text" id="expenseNote" placeholder="Супермаркет, бензин..." class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-orange-500" />
+            </div>
+
+            <button type="submit" class="w-full mt-2 py-3 bg-[#ea580c] hover:bg-[#c2410c] text-white font-medium rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-orange-950/60 border border-orange-600/50 active:scale-[0.99]">
+              - Внести расход
+            </button>
+          </form>
+
+          <div class="mt-4 pt-3 border-t border-zinc-800">
+            <span class="text-[11px] font-medium text-zinc-500 uppercase">Последние списания</span>
+            <div id="recentExpenseList" class="mt-1 space-y-1 text-xs"></div>
+          </div>
+        </div>
+
+        <!-- =================== ЯЧЕЙКА 3: ЖУРНАЛ И ОПЕРАЦИИ =================== -->
+        <div id="pane-analytics" class="tab-content hidden flex-1 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs uppercase tracking-wider font-semibold text-zinc-300" id="journalTitle">История кошелька</span>
+              
+              <div class="flex bg-zinc-900 rounded-lg p-0.5 border border-zinc-800 text-[11px]" id="filterBarContainer">
+                <button onclick="setFilter('all')" id="filter-all" class="px-2 py-0.5 rounded font-medium bg-zinc-700 text-white">Все</button>
+                <button onclick="setFilter('income')" id="filter-income" class="px-2 py-0.5 rounded font-medium text-zinc-400 hover:text-zinc-200">Доходы</button>
+                <button onclick="setFilter('expense')" id="filter-expense" class="px-2 py-0.5 rounded font-medium text-zinc-400 hover:text-zinc-200">Расходы</button>
+              </div>
+            </div>
+
+            <div id="journalContainer" class="space-y-3 overflow-y-auto max-h-[300px] pr-1"></div>
+          </div>
+
+          <!-- Резервное копирование -->
+          <div class="pt-2 border-t border-zinc-800 flex justify-between gap-2 text-[11px]">
+            <button onclick="exportCSV()" class="flex-1 py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition">
+              CSV экспорт
+            </button>
+            <button onclick="exportJSON()" class="flex-1 py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition">
+              Резервная копия
+            </button>
+            <label class="flex-1 py-1.5 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition text-center cursor-pointer">
+              Импорт
+              <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importJSON(event)" />
+            </label>
+          </div>
+        </div>
+
+        <!-- =================== ЯЧЕЙКА 4: ••• (СЧЕТА, УВЕДОМЛЕНИЯ, ДОПОЛНИТЕЛЬНО) =================== -->
+        <div id="pane-more" class="tab-content hidden flex-1 flex flex-col space-y-4">
+          
+          <!-- Подменю: Счета / Уведомления / Дополнительно -->
+          <div class="grid grid-cols-3 gap-1 p-1 bg-zinc-900/90 rounded-xl border border-zinc-800" id="moreSubmenuContainer">
+            <button onclick="switchMoreSubTab('accounts')" id="subtab-btn-accounts" class="py-1.5 px-2 rounded-lg text-xs font-medium bg-zinc-800 text-white shadow transition">Счета</button>
+            <button onclick="switchMoreSubTab('reminders')" id="subtab-btn-reminders" class="py-1.5 px-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 transition">Уведомления</button>
+            <button onclick="switchMoreSubTab('additional')" id="subtab-btn-additional" class="py-1.5 px-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 transition">Дополнительно</button>
+          </div>
+
+          <!-- ПОДРАЗДЕЛ 4.1: СЧЕТА -->
+          <div id="subpane-accounts" class="space-y-3 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs uppercase tracking-wider font-semibold text-zinc-400">Счета кошелька</span>
+                <button onclick="openModal('addAccountModal')" class="text-xs text-zinc-300 hover:text-white px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 transition">
+                  + Новый счёт
+                </button>
+              </div>
+
+              <div id="accountsListContainer" class="space-y-2 overflow-y-auto max-h-[300px] pr-1"></div>
+            </div>
+
+            <div class="pt-2 border-t border-zinc-800 text-[11px] text-zinc-500">
+              Нажмите на «••» у счёта для скрытия, редактирования или удаления.
+            </div>
+          </div>
+
+          <!-- ПОДРАЗДЕЛ 4.2: УВЕДОМЛЕНИЯ -->
+          <div id="subpane-reminders" class="hidden space-y-3.5 flex-1 flex flex-col overflow-y-auto max-h-[340px] pr-1">
+            
+            <!-- БЛОК 1: Забота о кошельке -->
+            <div class="p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-2.5 wallet-theme-card">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <h4 class="text-xs font-semibold text-zinc-200 uppercase tracking-wider">Забота о кошельке</h4>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="badgePushPermission" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-zinc-800 text-zinc-400">Проверка...</span>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="careNotifToggle" onchange="toggleCareNotifications(this.checked)" class="sr-only peer">
+                    <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 shadow-inner"></div>
+                  </label>
+                </div>
+              </div>
+              
+              <p class="text-[11px] text-zinc-400 leading-relaxed">
+                Приятное напоминание в выбранное время, чтобы записать траты и поступления:
+                <span class="text-zinc-300 italic block mt-1">«Минутка для кошелька: запишите доходы и расходы за день, чтобы финансы оставались в полном порядке ✨»</span>
+              </p>
+
+              <!-- Настройки времени и частоты напоминания -->
+              <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+                <div>
+                  <label class="block text-[11px] text-zinc-400 mb-1">Интервал</label>
+                  <select id="careFrequencySelect" onchange="saveCareSettings()" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-400">
+                    <option value="24h">Каждые 24 часа</option>
+                    <option value="48h">Каждые 48 часов</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] text-zinc-400 mb-1">Время напоминания</label>
+                  <input type="time" id="careTimeInput" value="21:00" onchange="saveCareSettings()" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-400" />
+                </div>
+              </div>
+
+              <div class="flex gap-2 pt-1">
+                <button onclick="requestNotificationAccess()" id="btnRequestPermission" class="flex-1 py-1.5 px-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold rounded-lg text-[11px] uppercase tracking-wide transition">
+                  Разрешить Push
+                </button>
+                <button onclick="triggerDirectCareTest()" class="py-1.5 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-[11px] border border-zinc-700 transition">
+                  Проверить
+                </button>
+              </div>
+            </div>
+
+            <!-- БЛОК 2: Отдельные финансовые советы и цитаты -->
+            <div class="p-3.5 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800/70 border border-zinc-800 space-y-3 wallet-theme-card">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                  <h4 class="text-xs font-semibold text-zinc-200 uppercase tracking-wider">Советы и цитаты</h4>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="wisdomNotifToggle" onchange="toggleWisdomNotifications(this.checked)" class="sr-only peer">
+                  <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600 shadow-inner"></div>
+                </label>
+              </div>
+
+              <!-- Превью цитаты -->
+              <div class="p-2.5 rounded-lg bg-zinc-950/70 border border-zinc-800/90 space-y-1 wallet-theme-subcard">
+                <div class="flex justify-between items-center text-[10px] text-zinc-500">
+                  <span>Предпросмотр</span>
+                  <button onclick="rotateWisdomPreview()" class="text-zinc-400 hover:text-white">↻ Другая</button>
+                </div>
+                <blockquote id="wisdomQuoteText" class="text-xs text-zinc-300 italic leading-snug">
+                  «Не откладывайте то, что осталось после трат, а тратьте то, что осталось после откладывания.»
+                </blockquote>
+                <div id="wisdomQuoteAuthor" class="text-[10px] text-zinc-500 text-right font-medium">
+                  — Уоррен Баффетт
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+                <div>
+                  <label class="block text-[11px] text-zinc-400 mb-1">Частота</label>
+                  <select id="wisdomFrequencySelect" onchange="saveWisdomSettings()" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-green-600">
+                    <option value="24h">1 раз в 24 часа</option>
+                    <option value="48h">1 раз в 48 часов</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] text-zinc-400 mb-1">Время напоминания</label>
+                  <input type="time" id="wisdomTimeInput" value="10:00" onchange="saveWisdomSettings()" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-green-600" />
+                </div>
+              </div>
+
+              <button onclick="triggerWisdomTestNotification()" class="w-full py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium rounded-lg text-xs transition border border-zinc-700 flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Тест Push с советом
+              </button>
+            </div>
+          </div>
+
+          <!-- ПОДРАЗДЕЛ 4.3: ДОПОЛНИТЕЛЬНО (• Категории и • Лимит) -->
+          <div id="subpane-additional" class="hidden space-y-4 flex-1 flex flex-col overflow-y-auto max-h-[320px] pr-1">
+            
+            <!-- Секция: • Категории -->
+            <div class="p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-3 wallet-theme-card">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+                  <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-200">Категории</h4>
+                </div>
+                <div class="flex bg-zinc-950 rounded-lg p-0.5 border border-zinc-800">
+                  <button onclick="switchCategoryEditorType('expense')" id="cat-type-expense" class="px-2 py-0.5 rounded text-[11px] font-medium bg-orange-600 text-white transition">Расходы</button>
+                  <button onclick="switchCategoryEditorType('income')" id="cat-type-income" class="px-2 py-0.5 rounded text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition">Доходы</button>
+                </div>
+              </div>
+
+              <!-- Форма добавления новой категории -->
+              <form onsubmit="addCustomCategory(event)" class="flex gap-2">
+                <input type="text" id="newCategoryInput" placeholder="Новая категория..." required class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500" />
+                <button type="submit" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg border border-zinc-700 transition">
+                  +
+                </button>
+              </form>
+
+              <!-- Список категорий -->
+              <div id="categoriesEditorList" class="flex flex-wrap gap-1.5 max-h-[130px] overflow-y-auto pt-0.5"></div>
+            </div>
+
+            <!-- Секция: • Лимит -->
+            <div class="p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-3 wallet-theme-card">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-200">Лимит</h4>
+              </div>
+
+              <!-- Лимит для отдельного счёта (батарейка расхода) -->
+              <div class="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-2.5 wallet-theme-subcard">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-zinc-300">Лимит для счёта (на месяц)</span>
+                  <span class="text-[10px] text-zinc-500">Индикатор батарейки</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] text-zinc-400 mb-1">Выберите счёт</label>
+                    <select id="limitAccountSelect" onchange="onLimitAccountChange()" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-yellow-400"></select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-zinc-400 mb-1">Сумма лимита (<span class="currency-symbol-label">₽</span>)</label>
+                    <div class="relative">
+                      <input type="number" step="any" id="accountLimitAmountInput" placeholder="0 = без лимита" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-yellow-400" />
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-2 pt-1">
+                  <button type="button" id="btnSaveAccountLimit" onclick="saveAccountLimit()" class="flex-1 py-1.5 bg-yellow-600/70 hover:bg-yellow-600 border border-yellow-500 text-white font-medium text-xs rounded-lg transition active:scale-95 shadow-sm">
+                    Установить лимит
+                  </button>
+                  <button type="button" id="btnClearAccountLimit" onclick="clearAccountLimit()" class="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs rounded-lg border border-zinc-600 transition">
+                    Снять
+                  </button>
+                </div>
+                <p class="text-[10px] text-zinc-500">
+                  В разделе «Счета» появится батарейка остатка лимита. При его превышении появится сдержанная зачёркнутая батарейка, а карточка счёта мягко выделится.
+                </p>
+              </div>
+
+              <!-- Месячный общий лимит на траты -->
+              <div class="space-y-1 pt-1">
+                <div class="flex justify-between items-center text-xs">
+                  <label class="text-zinc-300 font-medium">Общий лимит на траты (в месяц):</label>
+                  <span id="limitExpenseIndicator" class="text-[11px] font-mono text-zinc-400">0 ₽</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="any" id="monthlyExpenseLimitInput" placeholder="Например: 50000" onchange="updateSpendingLimits()" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-yellow-400" />
+                  <span class="absolute right-3 top-2 text-zinc-500 text-xs currency-symbol-label">₽</span>
+                </div>
+                <p class="text-[10px] text-zinc-500">При превышении общего лимита баланс окрасится в бледно-жёлтый, а графа расходов — в красный без мигания.</p>
+              </div>
+
+              <!-- Допустимая разовая трата в % от капитала -->
+              <div class="space-y-1 pt-2 border-t border-zinc-800/60">
+                <div class="flex justify-between items-center text-xs">
+                  <label class="text-zinc-300 font-medium">Допустимая разовая трата (% от капитала):</label>
+                  <span id="limitPercentIndicator" class="text-[11px] font-mono text-zinc-400">10%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" min="1" max="100" step="1" id="maxExpensePercentInput" placeholder="10" onchange="updateSpendingLimits()" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-red-400" />
+                  <span class="absolute right-3 top-2 text-zinc-500 text-xs">%</span>
+                </div>
+                <p class="text-[10px] text-zinc-500">Траты выше этого % подсвечиваются ровным предупреждающим <span class="text-red-400 font-medium">красным</span> цветом.</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Футер -->
+  <footer class="w-full max-w-lg mx-auto py-3 px-4 text-center text-[11px] text-zinc-600">
+    Wallet • Персональный финансовый учёт
+  </footer>
+
+  <!-- Модальное окно: Смена валюты -->
+  <div id="currencyModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-semibold text-zinc-200">Смена валюты учёта</h3>
+        <button onclick="closeModal('currencyModal')" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs text-zinc-300">
+        <p>
+          Текущая валюта: <span class="font-bold text-white uppercase" id="modalCurrentCurrency">RU (₽)</span>
+        </p>
+        <p class="text-zinc-400">
+          При переключении балансы счетов с режимом «общ», общие лимиты и суммы в журнале будут пересчитаны по курсу:
+        </p>
+        <div>
+          <label class="block text-zinc-400 mb-1" id="currencyRateLabel">Курс конвертации (рублей за 1 доллар):</label>
+          <input type="number" step="any" id="currencyRateInput" value="95" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500" />
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeModal('currencyModal')" class="flex-1 py-2 rounded-xl text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700">Отмена</button>
+        <button onclick="confirmCurrencySwitch()" id="btnConfirmCurrency" class="flex-1 py-2 rounded-xl text-xs bg-zinc-100 hover:bg-white text-zinc-950 font-semibold">Конвертировать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно: Новый счёт -->
+  <div id="addAccountModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-semibold text-zinc-200">Новый счёт</h3>
+        <button onclick="closeModal('addAccountModal')" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1">Название счёта</label>
+          <input type="text" id="newAccName" placeholder="Основная карта, Сейф..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1">Начальный баланс (<span class="currency-symbol-label">₽</span>)</label>
+          <input type="number" step="any" id="newAccBalance" placeholder="0" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1.5">Выберите иконку (6 вариантов)</label>
+          <div id="accountIconPicker" class="grid grid-cols-3 gap-2"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeModal('addAccountModal')" class="flex-1 py-2 rounded-xl text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700">Отмена</button>
+        <button onclick="saveNewAccount()" class="flex-1 py-2 rounded-xl text-xs bg-zinc-100 hover:bg-white text-zinc-900 font-semibold">Создать счёт</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно: Редактировать счёт -->
+  <div id="editAccountModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-semibold text-zinc-200">Редактировать счёт</h3>
+        <button onclick="closeModal('editAccountModal')" class="text-zinc-500 hover:text-zinc-300 text-lg leading-none">&times;</button>
+      </div>
+
+      <input type="hidden" id="editAccountId" />
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1">Название счёта</label>
+          <input type="text" id="editAccName" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1">Баланс (<span class="currency-symbol-label">₽</span>)</label>
+          <input type="number" step="any" id="editAccBalance" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500" />
+        </div>
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1.5">Иконка</label>
+          <div id="editAccountIconPicker" class="grid grid-cols-3 gap-2"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeModal('editAccountModal')" class="flex-1 py-2 rounded-xl text-xs bg-zinc-800 text-zinc-400 hover:bg-zinc-700">Отмена</button>
+        <button onclick="saveEditedAccount()" class="flex-1 py-2 rounded-xl text-xs bg-zinc-100 hover:bg-white text-zinc-900 font-semibold">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Всплывающий Message Box -->
+  <div id="toastMessage" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs px-4 py-2.5 rounded-xl shadow-2xl opacity-0 pointer-events-none transition-all duration-300 max-w-xs text-center">
+    Уведомление
+  </div>
+
+  <!-- Скрипты приложения -->
+  <script>
+    // --- 1. Константы и ключи хранения ---
+    const STORAGE_KEY_ACCOUNTS = 'wallet_pwa_accounts';
+    const STORAGE_KEY_TXS = 'wallet_pwa_transactions';
+    const STORAGE_KEY_INC_CATS = 'wallet_pwa_income_categories';
+    const STORAGE_KEY_EXP_CATS = 'wallet_pwa_expense_categories';
+    const STORAGE_KEY_LIMITS = 'wallet_pwa_limits';
+    const STORAGE_KEY_CURRENCY = 'wallet_pwa_currency_state';
+    const STORAGE_KEY_THEME = 'wallet_pwa_theme';
+    const STORAGE_KEY_WISDOM_SETTINGS = 'wallet_pwa_wisdom_settings';
+    const STORAGE_KEY_CARE_SETTINGS = 'wallet_pwa_care_settings';
+
+    const ACCOUNT_ICONS = {
+      card: {
+        label: 'Карта',
+        svg: `<svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-width="1.8"/><line x1="2" y1="10" x2="22" y2="10" stroke-width="1.8"/></svg>`
+      },
+      cash: {
+        label: 'Купюры',
+        svg: `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2" stroke-width="1.8"/><circle cx="12" cy="12" r="2.5" stroke-width="1.8"/></svg>`
+      },
+      savings: {
+        label: 'Банк / Сейф',
+        svg: `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 21h18M3 10h18M5 10v11M19 10v11M12 3l9 7H3l9-7z"/></svg>`
+      },
+      piggy: {
+        label: 'Копилка',
+        svg: `<svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11a7 7 0 00-7-7 7 7 0 00-6.6 4.7A2.5 2.5 0 003 11v2a2 2 0 002 2h1v3a1 1 0 001 1h2a1 1 0 001-1v-1h4v1a1 1 0 001 1h2a1 1 0 001-1v-3a3 3 0 001-2.2V11zm-9-2h4"/></svg>`
+      },
+      crypto: {
+        label: 'Цифровой',
+        svg: `<svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="12 2 19 8 12 14 5 8 12 2" stroke-width="1.8" stroke-linejoin="round"/><polyline points="5 12 12 18 19 12" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="5 16 12 22 19 16" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      },
+      briefcase: {
+        label: 'Бизнес',
+        svg: `<svg class="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 5v2"/></svg>`
+      }
+    };
+
+    const RECURRENCE_LABELS = {
+      once: '',
+      daily: 'Ежедневно',
+      weekly: 'Еженедельно',
+      monthly: 'Ежемесячно',
+      yearly: 'Ежегодно'
+    };
+
+    const FINANCIAL_WISDOM = [
+      { quote: "Не откладывайте то, что осталось после трат, а тратьте то, что осталось после откладывания.", author: "Уоррен Баффетт" },
+      { quote: "Остерегайтесь мелких напрасных расходов: маленькая течь может потопить большой корабль.", author: "Бенджамин Франклин" },
+      { quote: "Богатство — это не то, сколько вы зарабатываете, а то, сколько вы сохраняете и заставляете работать на себя.", author: "Роберт Кийосаки" },
+      { quote: "Часть всего, что ты зарабатываешь, по праву принадлежит тебе самому. Сохраняй минимум 10% каждого дохода.", author: "Джордж Клейсон" },
+      { quote: "Не тот беден, у кого мало, а тот, кто всегда жаждет большего. Учёт даёт спокойствие разума.", author: "Луций Анней Сенека" },
+      { quote: "Если вы покупаете вещи, которые вам не нужны, то вскоре вам придётся продавать вещи, которые вам необходимы.", author: "Уоррен Баффетт" },
+      { quote: "Перед крупной импульсивной покупкой возьмите паузу на 24 часа. 80% желаний отпадают сами.", author: "Правило осознанных трат" },
+      { quote: "Тот, кто управляет своими деньгами на бумаге, управляет своим будущим наяву.", author: "Дэйв Рэмси" },
+      { quote: "Деньги — прекрасный слуга, но очень плохой господин. Регулярный учёт ставит их на место слуги.", author: "Фрэнсис Бэкон" },
+      { quote: "Финансовая свобода начинается в тот день, когда вы точно знаете, куда уходит каждый рубль или доллар.", author: "Бодо Шефер" }
+    ];
+
+    const defaultAccounts = [
+      { id: 'acc_cash', name: 'Наличные', balance: 5000, type: 'cash', isHidden: false, currencyScope: 'all' },
+      { id: 'acc_card', name: 'Основная карта', balance: 42500, type: 'card', isHidden: false, currencyScope: 'ru' },
+      { id: 'acc_savings', name: 'Резервный сейф', balance: 120000, type: 'savings', isHidden: false, currencyScope: 'all' }
+    ];
+
+    const defaultIncomeCategories = [
+      'Зарплата', 'Аванс', 'Дивиденды / Вклад', 'Фриланс', 'Подарок', 'Возврат долга', 'Прочее'
+    ];
+
+    const defaultExpenseCategories = [
+      'Продукты', 'Жильё / ЖКХ', 'Транспорт / Авто', 'Кафе и рестораны', 'Подписки / Связь', 'Здоровье', 'Покупки / Одежда', 'Развлечения', 'Прочее'
+    ];
+
+    // Состояние
+    let accounts = JSON.parse(localStorage.getItem(STORAGE_KEY_ACCOUNTS)) || defaultAccounts;
+    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY_TXS)) || [];
+    let incomeCategories = JSON.parse(localStorage.getItem(STORAGE_KEY_INC_CATS)) || defaultIncomeCategories;
+    let expenseCategories = JSON.parse(localStorage.getItem(STORAGE_KEY_EXP_CATS)) || defaultExpenseCategories;
+    let spendingLimits = JSON.parse(localStorage.getItem(STORAGE_KEY_LIMITS)) || { monthlyLimit: 0, maxExpensePercent: 10 };
+    let currentCurrency = localStorage.getItem(STORAGE_KEY_CURRENCY) || 'ru';
+    let currentTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'dark';
+
+    let wisdomSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_WISDOM_SETTINGS)) || {
+      enabled: false,
+      frequency: '24h',
+      time: '10:00'
+    };
+    let careSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_CARE_SETTINGS)) || {
+      enabled: true,
+      frequency: '48h',
+      time: '21:00'
+    };
+
+    let currentFilter = 'all';
+    let selectedNewAccountIcon = 'card';
+    let selectedEditAccountIcon = 'card';
+    let currentCategoryEditorType = 'expense';
+    let currentWisdomIndex = 0;
+    let activeAccountMenuId = null;
+    let currentActiveTab = 'income';
+
+    // --- Переключение светлой / тёмной темы ---
+    function applyTheme(theme) {
+      currentTheme = theme;
+      localStorage.setItem(STORAGE_KEY_THEME, theme);
+      const body = document.body;
+      const themeIcon = document.getElementById('themeToggleIcon');
+      const themeText = document.getElementById('themeToggleText');
+      const brandLogo = document.getElementById('brandLogoText');
+
+      if (theme === 'light') {
+        body.classList.add('light-mode');
+        if (themeIcon) {
+          themeIcon.innerHTML = `<svg class="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`;
+        }
+        if (themeText) {
+          themeText.textContent = 'День';
+          themeText.className = 'text-[11px] font-mono text-black font-semibold';
+        }
+        if (brandLogo) brandLogo.className = 'text-xl font-bold tracking-tight text-black';
+      } else {
+        body.classList.remove('light-mode');
+        if (themeIcon) {
+          themeIcon.innerHTML = `<svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`;
+        }
+        if (themeText) {
+          themeText.textContent = 'Ночь';
+          themeText.className = 'text-[11px] font-mono text-zinc-300';
+        }
+        if (brandLogo) brandLogo.className = 'text-xl font-bold tracking-tight text-zinc-100';
+      }
+      applyThemeToTabs();
+    }
+
+    function toggleTheme() {
+      applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+      showToast(currentTheme === 'light' ? 'Включена светлая тема' : 'Включена тёмная тема');
+    }
+
+    function applyThemeToTabs() {
+      const isLight = currentTheme === 'light';
+      const slotBody = document.getElementById('slot-card-body');
+      const summaryCard = document.getElementById('summaryCard');
+      const bal = document.getElementById('mainTotalBalance');
+
+      if (slotBody) {
+        slotBody.style.backgroundColor = isLight ? '#ffffff' : '#1c1c20';
+        slotBody.style.borderColor = isLight ? '#e4e4e7' : '#3f3f46';
+      }
+
+      if (summaryCard) {
+        if (isLight) {
+          summaryCard.className = 'relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-zinc-50 border border-zinc-200/90 p-5 mb-5 shadow-lg transition-colors';
+          if (bal && !bal.classList.contains('text-yellow-300')) {
+            bal.classList.replace('text-white', 'text-zinc-900');
+          }
+        } else {
+          summaryCard.className = 'relative overflow-hidden rounded-2xl bg-gradient-to-b from-zinc-800/80 to-zinc-900/90 border border-zinc-700/50 p-5 mb-5 shadow-2xl backdrop-blur-md transition-colors';
+          if (bal && !bal.classList.contains('text-yellow-300')) {
+            bal.classList.replace('text-zinc-900', 'text-white');
+          }
+        }
+      }
+
+      // Немедленное обновление оформления всех закладок при смене темы
+      tabs.forEach(tab => {
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        if (!btn) return;
+        const isActive = (tab === currentActiveTab);
+
+        if (isActive) {
+          btn.style.backgroundColor = isLight ? '#ffffff' : '#1c1c20';
+          btn.style.borderColor = isLight ? '#d4d4d8' : '#3f3f46';
+        } else {
+          btn.style.backgroundColor = isLight ? '#e4e4e7' : '#141417';
+          btn.style.borderColor = isLight ? '#d4d4d8' : '#27272a';
+        }
+      });
+    }
+
+    // Проверка активности счета в текущем режиме валюты (all, ru, us)
+    function isAccountActiveForCurrentCurrency(acc) {
+      const scope = acc.currencyScope || 'all';
+      if (scope === 'all') return true;
+      return scope === currentCurrency;
+    }
+
+    function getCurrencySymbol() {
+      return currentCurrency === 'us' ? '$' : '₽';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toastMessage');
+      if (!toast) return;
+      toast.textContent = text;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function openModal(id) {
+      const m = document.getElementById(id);
+      if (m) m.classList.remove('hidden');
+      if (id === 'addAccountModal') renderIconPicker();
+    }
+
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      if (m) m.classList.add('hidden');
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
+      localStorage.setItem(STORAGE_KEY_TXS, JSON.stringify(transactions));
+      localStorage.setItem(STORAGE_KEY_INC_CATS, JSON.stringify(incomeCategories));
+      localStorage.setItem(STORAGE_KEY_EXP_CATS, JSON.stringify(expenseCategories));
+      localStorage.setItem(STORAGE_KEY_LIMITS, JSON.stringify(spendingLimits));
+      renderSummary();
+    }
+
+    // --- Валютный переключатель ru / us ---
+    function updateCurrencyUI() {
+      const sym = getCurrencySymbol();
+      document.getElementById('currentCurrencyLabel').textContent = currentCurrency;
+      document.querySelectorAll('.currency-symbol-label').forEach(el => el.textContent = sym);
+      document.getElementById('modalCurrentCurrency').textContent = `${currentCurrency.toUpperCase()} (${sym})`;
+    }
+
+    function openCurrencyModal() {
+      const targetCur = currentCurrency === 'ru' ? 'us' : 'ru';
+      document.getElementById('modalCurrentCurrency').textContent = `${currentCurrency.toUpperCase()} (${getCurrencySymbol()})`;
+      document.getElementById('btnConfirmCurrency').textContent = `Перевести в ${targetCur.toUpperCase()}`;
+      document.getElementById('currencyRateLabel').textContent = 'Курс конвертации (рублей за 1 доллар):';
+      openModal('currencyModal');
+    }
+
+    function confirmCurrencySwitch() {
+      const rateInput = document.getElementById('currencyRateInput');
+      const rate = parseFloat(rateInput.value);
+      if (!rate || rate <= 0) {
+        showToast('Введите корректный курс');
+        return;
+      }
+
+      if (currentCurrency === 'ru') {
+        accounts.forEach(acc => {
+          if ((acc.currencyScope || 'all') === 'all') {
+            acc.balance = Math.round((acc.balance / rate) * 100) / 100;
+            if (acc.limit) {
+              acc.limit = Math.round((acc.limit / rate) * 100) / 100;
+            }
+          }
+        });
+        transactions.forEach(t => {
+          t.amount = Math.round((t.amount / rate) * 100) / 100;
+        });
+        if (spendingLimits.monthlyLimit) {
+          spendingLimits.monthlyLimit = Math.round((spendingLimits.monthlyLimit / rate) * 100) / 100;
+        }
+        currentCurrency = 'us';
+      } else {
+        accounts.forEach(acc => {
+          if ((acc.currencyScope || 'all') === 'all') {
+            acc.balance = Math.round(acc.balance * rate);
+            if (acc.limit) {
+              acc.limit = Math.round(acc.limit * rate);
+            }
+          }
+        });
+        transactions.forEach(t => {
+          t.amount = Math.round(t.amount * rate);
+        });
+        if (spendingLimits.monthlyLimit) {
+          spendingLimits.monthlyLimit = Math.round(spendingLimits.monthlyLimit * rate);
+        }
+        currentCurrency = 'ru';
+      }
+
+      localStorage.setItem(STORAGE_KEY_CURRENCY, currentCurrency);
+      saveState();
+      updateCurrencyUI();
+      closeModal('currencyModal');
+      initLimitsUI();
+      renderAccounts();
+      renderJournal();
+      showToast(`Валюта переведена в ${currentCurrency.toUpperCase()} (${getCurrencySymbol()})`);
+    }
+
+    // --- Навигация по вкладкам ---
+    const tabs = ['income', 'expense', 'analytics', 'more'];
+    
+    function switchTab(selectedTab) {
+      currentActiveTab = selectedTab;
+      const isLight = currentTheme === 'light';
+
+      tabs.forEach(tab => {
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        const pane = document.getElementById(`pane-${tab}`);
+        if (!btn || !pane) return;
+
+        if (tab === selectedTab) {
+          btn.classList.add('active-slot');
+          btn.classList.remove('inactive-slot');
+          btn.style.backgroundColor = isLight ? '#ffffff' : '#1c1c20';
+          btn.style.borderColor = isLight ? '#d4d4d8' : '#3f3f46';
+          pane.classList.remove('hidden');
+        } else {
+          btn.classList.remove('active-slot');
+          btn.classList.add('inactive-slot');
+          btn.style.backgroundColor = isLight ? '#e4e4e7' : '#141417';
+          btn.style.borderColor = isLight ? '#d4d4d8' : '#27272a';
+          pane.classList.add('hidden');
+        }
+      });
+
+      applyThemeToTabs();
+
+      if (selectedTab === 'analytics') renderJournal();
+      if (selectedTab === 'more') {
+        renderAccounts();
+        updateReminderStatusUI();
+        initLimitsUI();
+      }
+    }
+
+    function switchMoreSubTab(subTab) {
+      const subTabs = ['accounts', 'reminders', 'additional'];
+      subTabs.forEach(st => {
+        const btn = document.getElementById(`subtab-btn-${st}`);
+        const pane = document.getElementById(`subpane-${st}`);
+        if (!btn || !pane) return;
+
+        if (st === subTab) {
+          btn.className = 'py-1.5 px-2 rounded-lg text-xs font-medium bg-zinc-800 text-white shadow transition';
+          pane.classList.remove('hidden');
+        } else {
+          btn.className = 'py-1.5 px-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 transition';
+          pane.classList.add('hidden');
+        }
+      });
+
+      if (subTab === 'accounts') renderAccounts();
+      if (subTab === 'reminders') {
+        updateReminderStatusUI();
+        initCareUI();
+        initWisdomUI();
+      }
+      if (subTab === 'additional') {
+        renderCategoryEditor();
+        initLimitsUI();
+      }
+    }
+
+    function getAccountIconSvg(type) {
+      return (ACCOUNT_ICONS[type] && ACCOUNT_ICONS[type].svg) ? ACCOUNT_ICONS[type].svg : ACCOUNT_ICONS.card.svg;
+    }
+
+    function isExpenseExceedingThreshold(amount) {
+      const totalCapital = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+      const thresholdPercent = spendingLimits.maxExpensePercent || 10;
+      if (totalCapital <= 0) return false;
+      const percent = (amount / totalCapital) * 100;
+      return percent > thresholdPercent;
+    }
+
+    function getAccountCurrentMonthExpense(accountId) {
+      const now = new Date();
+      const curMonth = now.getMonth();
+      const curYear = now.getFullYear();
+      return transactions.reduce((sum, t) => {
+        if (t.accountId === accountId && t.type === 'expense') {
+          // Корректный парсинг YYYY-MM-DD без сдвигов часовых поясов
+          if (!t.date) return sum;
+          const parts = t.date.split('-');
+          if (parts.length >= 2) {
+            const txYear = parseInt(parts[0], 10);
+            const txMonth = parseInt(parts[1], 10) - 1; // 0-индексированный месяц
+            if (txMonth === curMonth && txYear === curYear) {
+              return sum + Number(t.amount);
+            }
+          } else {
+            const d = new Date(t.date);
+            if (d.getMonth() === curMonth && d.getFullYear() === curYear) {
+              return sum + Number(t.amount);
+            }
+          }
+        }
+        return sum;
+      }, 0);
+    }
+
+    // Сдержанный цвет и иконка батарейки при исчерпании лимита (нейтрально-графитовый вместо ядовито-красного)
+    function renderAccountBatteryBadge(acc) {
+      if (!acc.limit || Number(acc.limit) <= 0) return '';
+      
+      const limitVal = Number(acc.limit);
+      const spent = getAccountCurrentMonthExpense(acc.id);
+      const remaining = Math.max(0, limitVal - spent);
+      const percentRemaining = Math.max(0, Math.min(100, Math.round((remaining / limitVal) * 100)));
+      const isExceeded = spent > limitVal;
+
+      if (isExceeded) {
+        // Красный кусочек с зачёркнутой батарейкой, процентами и словом "исчерпан"
+        return `
+          <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-950/40 border border-red-900/60 text-red-400 font-mono text-[10px]" title="Лимит исчерпан: потрачено ${spent.toLocaleString('ru-RU')} из ${limitVal.toLocaleString('ru-RU')}">
+            <svg class="w-3.5 h-3.5 text-red-400 shrink-0 stroke-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="2" y="7" width="16" height="10" rx="2" stroke-width="1.6"/>
+              <line x1="20" y1="10" x2="20" y2="14" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="4" y1="6" x2="18" y2="18" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span class="font-semibold text-red-400">0%</span>
+            <span class="text-[9px] text-red-300 uppercase tracking-tight font-medium">исчерпан</span>
+          </div>
+        `;
+      }
+
+      let chargeColor = 'bg-emerald-500 text-emerald-400';
+      if (percentRemaining <= 20) {
+        chargeColor = 'bg-zinc-400 text-zinc-300';
+      } else if (percentRemaining <= 50) {
+        chargeColor = 'bg-amber-400 text-amber-400';
+      }
+
+      return `
+        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-950/80 border border-zinc-800 font-mono text-[10px]" title="Остаток лимита: ${remaining.toLocaleString('ru-RU')} из ${limitVal.toLocaleString('ru-RU')}">
+          <div class="relative w-5 h-2.5 rounded-sm border border-zinc-500 p-[1px] flex items-center">
+            <div class="h-full rounded-[1px] ${chargeColor.split(' ')[0]} transition-all duration-300" style="width: ${percentRemaining}%;"></div>
+            <div class="absolute -right-1 top-0.5 w-[2px] h-1.5 bg-zinc-500 rounded-r-[1px]"></div>
+          </div>
+          <span class="font-medium ${chargeColor.split(' ')[1]}">${percentRemaining}%</span>
+        </div>
+      `;
+    }
+
+    // --- Сводка и Баланс ---
+    function renderSummary() {
+      const sym = getCurrencySymbol();
+      const isLight = currentTheme === 'light';
+      const activeAccounts = accounts.filter(isAccountActiveForCurrentCurrency);
+      const total = activeAccounts.reduce((acc, curr) => acc + Number(curr.balance), 0);
+      const totalBalanceEl = document.getElementById('mainTotalBalance');
+      totalBalanceEl.textContent = total.toLocaleString('ru-RU');
+      document.getElementById('totalTxCount').textContent = `${transactions.length} записей`;
+
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      let monthInc = 0;
+      let monthExp = 0;
+      let hasExceedingSingleTxThisMonth = false;
+
+      let hasExceededAccountLimit = false;
+      accounts.forEach(acc => {
+        if (acc.limit && Number(acc.limit) > 0) {
+          if (getAccountCurrentMonthExpense(acc.id) > Number(acc.limit)) {
+            hasExceededAccountLimit = true;
+          }
+        }
+      });
+
+      transactions.forEach(t => {
+        const d = new Date(t.date);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+          if (t.type === 'income') monthInc += Number(t.amount);
+          if (t.type === 'expense') {
+            monthExp += Number(t.amount);
+            if (isExpenseExceedingThreshold(Number(t.amount))) {
+              hasExceedingSingleTxThisMonth = true;
+            }
+          }
+        }
+      });
+
+      document.getElementById('mainMonthIncome').textContent = `+${monthInc.toLocaleString('ru-RU')} ${sym}`;
+      const expenseEl = document.getElementById('mainMonthExpense');
+      const expenseDot = document.getElementById('mainMonthExpenseDot');
+      expenseEl.textContent = `-${monthExp.toLocaleString('ru-RU')} ${sym}`;
+
+      const monthlyLimit = Number(spendingLimits.monthlyLimit || 0);
+      const isMonthlyLimitExceeded = (monthlyLimit > 0 && monthExp > monthlyLimit);
+
+      // При превышении общего лимита или лимита счёта — мягкий жёлтый цвет
+      if (isMonthlyLimitExceeded || hasExceededAccountLimit) {
+        totalBalanceEl.className = 'text-3xl sm:text-4xl font-semibold tracking-tight text-yellow-300 transition-colors duration-300';
+      } else {
+        totalBalanceEl.className = `text-3xl sm:text-4xl font-semibold tracking-tight ${isLight ? 'text-zinc-900' : 'text-white'} transition-colors duration-300`;
+      }
+
+      // При превышении лимита или допустимой разовой траты — статичный красный цвет без мерцания
+      if (isMonthlyLimitExceeded || hasExceedingSingleTxThisMonth || hasExceededAccountLimit) {
+        expenseEl.className = 'text-sm font-semibold text-red-500 tracking-tight transition-colors duration-300';
+        if (expenseDot) expenseDot.className = 'w-2 h-2 rounded-full bg-red-500 ring-2 ring-red-950/60';
+      } else {
+        expenseEl.className = 'text-sm font-semibold text-orange-400 tracking-tight transition-colors duration-300';
+        if (expenseDot) expenseDot.className = 'w-2 h-2 rounded-full bg-orange-500 ring-2 ring-orange-950/60';
+      }
+
+      const miniBar = document.getElementById('miniAccountsBar');
+      miniBar.innerHTML = '';
+      const visibleAccounts = activeAccounts.filter(acc => !acc.isHidden);
+
+      if (visibleAccounts.length === 0) {
+        miniBar.innerHTML = `<span class="text-[11px] text-zinc-500 italic py-0.5">Все счета скрыты с панели</span>`;
+      } else {
+        visibleAccounts.forEach(acc => {
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.onclick = () => { switchTab('more'); switchMoreSubTab('accounts'); };
+          pill.className = `flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isLight ? 'bg-zinc-100 border-zinc-300 hover:border-zinc-400' : 'bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'} border text-left shrink-0 transition`;
+          pill.innerHTML = `
+            ${getAccountIconSvg(acc.type)}
+            <span class="text-[11px] ${isLight ? 'text-zinc-600' : 'text-zinc-400'}">${escapeHtml(acc.name)}:</span>
+            <span class="text-[11px] font-semibold ${isLight ? 'text-zinc-900' : 'text-zinc-200'} font-mono">${Number(acc.balance).toLocaleString('ru-RU')} ${sym}</span>
+          `;
+          miniBar.appendChild(pill);
+        });
+      }
+
+      populateAccountSelects();
+      populateCategorySelects();
+      renderRecentTransactions();
+    }
+
+    // --- Обработка транзакций (с регулярностью и ограничением даты) ---
+    function handleTransactionSubmit(event, type) {
+      event.preventDefault();
+      const isIncome = type === 'income';
+
+      const amountInput = document.getElementById(isIncome ? 'incomeAmount' : 'expenseAmount');
+      const accountSelect = document.getElementById(isIncome ? 'incomeAccount' : 'expenseAccount');
+      const categorySelect = document.getElementById(isIncome ? 'incomeCategory' : 'expenseCategory');
+      const recurrenceSelect = document.getElementById(isIncome ? 'incomeRecurrence' : 'expenseRecurrence');
+      const dateInput = document.getElementById(isIncome ? 'incomeDate' : 'expenseDate');
+      const noteInput = document.getElementById(isIncome ? 'incomeNote' : 'expenseNote');
+
+      const amount = parseFloat(amountInput.value);
+      const accountId = accountSelect.value;
+      const category = categorySelect.value;
+      const recurrence = recurrenceSelect ? recurrenceSelect.value : 'once';
+      const date = dateInput.value;
+      const note = noteInput.value.trim();
+
+      const today = new Date().toISOString().split('T')[0];
+      if (date > today) {
+        showToast('Нельзя выбрать дату в будущем');
+        dateInput.value = today;
+        return;
+      }
+
+      if (isNaN(amount) || amount <= 0) {
+        showToast('Введите корректную сумму');
+        return;
+      }
+
+      const accIdx = accounts.findIndex(a => a.id === accountId);
+      if (accIdx === -1) {
+        showToast('Счёт не найден');
+        return;
+      }
+
+      if (isIncome) {
+        accounts[accIdx].balance += amount;
+      } else {
+        accounts[accIdx].balance -= amount;
+      }
+
+      const newTx = {
+        id: 'tx_' + Date.now(),
+        type: type,
+        amount: amount,
+        accountId: accountId,
+        accountName: accounts[accIdx].name,
+        category: category,
+        recurrence: recurrence,
+        date: date,
+        note: note,
+        createdAt: new Date().toISOString()
+      };
+
+      transactions.unshift(newTx);
+      amountInput.value = '';
+      noteInput.value = '';
+
+      saveState();
+      showToast(isIncome ? 'Доход успешно зачислен' : 'Расход зафиксирован');
+      updateReminderStatusUI();
+    }
+
+    function populateAccountSelects() {
+      const incSelect = document.getElementById('incomeAccount');
+      const expSelect = document.getElementById('expenseAccount');
+      if (!incSelect || !expSelect) return;
+
+      const activeAccounts = accounts.filter(isAccountActiveForCurrentCurrency);
+      if (activeAccounts.length === 0) {
+        const fallbackOption = `<option value="">Нет счетов для ${currentCurrency.toUpperCase()}</option>`;
+        incSelect.innerHTML = fallbackOption;
+        expSelect.innerHTML = fallbackOption;
+        return;
+      }
+
+      const html = activeAccounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${Number(a.balance).toLocaleString('ru-RU')} ${getCurrencySymbol()})</option>`).join('');
+      incSelect.innerHTML = html;
+      expSelect.innerHTML = html;
+    }
+
+    function populateCategorySelects() {
+      const incCat = document.getElementById('incomeCategory');
+      const expCat = document.getElementById('expenseCategory');
+      if (!incCat || !expCat) return;
+
+      incCat.innerHTML = incomeCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      expCat.innerHTML = expenseCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }
+
+    function renderRecentTransactions() {
+      const sym = getCurrencySymbol();
+      const recentInc = transactions.filter(t => t.type === 'income').slice(0, 2);
+      const recentExp = transactions.filter(t => t.type === 'expense').slice(0, 2);
+
+      const incList = document.getElementById('recentIncomeList');
+      const expList = document.getElementById('recentExpenseList');
+
+      if (recentInc.length === 0) {
+        incList.innerHTML = `<span class="text-zinc-500">Нет записей</span>`;
+      } else {
+        incList.innerHTML = recentInc.map(t => {
+          const recLabel = RECURRENCE_LABELS[t.recurrence] ? ` • ${RECURRENCE_LABELS[t.recurrence]}` : '';
+          return `
+            <div class="flex justify-between items-center py-0.5">
+              <span class="text-zinc-400 truncate">${escapeHtml(t.category)} <span class="text-zinc-500 font-mono text-[10px]">${recLabel}</span></span>
+              <span class="font-mono text-green-500 font-medium shrink-0">+${Number(t.amount).toLocaleString('ru-RU')} ${sym}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (recentExp.length === 0) {
+        expList.innerHTML = `<span class="text-zinc-500">Нет записей</span>`;
+      } else {
+        expList.innerHTML = recentExp.map(t => {
+          const isExceeding = isExpenseExceedingThreshold(Number(t.amount));
+          const colorClass = isExceeding ? 'text-red-400 font-semibold' : 'text-orange-400 font-medium';
+          const recLabel = RECURRENCE_LABELS[t.recurrence] ? ` • ${RECURRENCE_LABELS[t.recurrence]}` : '';
+          return `
+            <div class="flex justify-between items-center py-0.5">
+              <span class="text-zinc-400 truncate">${escapeHtml(t.category)} <span class="text-zinc-500 font-mono text-[10px]">${recLabel}</span></span>
+              <span class="font-mono ${colorClass} shrink-0">-${Number(t.amount).toLocaleString('ru-RU')} ${sym}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // --- Журнал операций ---
+    function renderJournal() {
+      const container = document.getElementById('journalContainer');
+      const sym = getCurrencySymbol();
+      container.innerHTML = '';
+
+      let filtered = transactions;
+      if (currentFilter !== 'all') {
+        filtered = transactions.filter(t => t.type === currentFilter);
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500 py-6 text-center">Записей пока нет</p>`;
+        return;
+      }
+
+      const groups = {};
+      filtered.forEach(t => {
+        if (!groups[t.date]) groups[t.date] = [];
+        groups[t.date].push(t);
+      });
+
+      const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+
+      sortedDates.forEach(date => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'space-y-1.5';
+
+        const headerDate = new Date(date).toLocaleDateString('ru-RU', {
+          day: 'numeric', month: 'long', weekday: 'short'
+        });
+
+        groupEl.innerHTML = `<div class="text-[10px] uppercase font-mono tracking-wider text-zinc-500 pt-1">${headerDate}</div>`;
+
+        groups[date].forEach(t => {
+          const isIncome = t.type === 'income';
+          const isExceeding = !isIncome && isExpenseExceedingThreshold(Number(t.amount));
+          
+          let colorClass = 'text-green-500';
+          let sign = '+';
+          if (!isIncome) {
+            sign = '-';
+            colorClass = isExceeding ? 'text-red-400 font-semibold' : 'text-orange-400';
+          }
+
+          const recurrenceBadge = (t.recurrence && t.recurrence !== 'once')
+            ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 font-mono uppercase">${RECURRENCE_LABELS[t.recurrence]}</span>`
+            : '';
+
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between p-2 rounded-xl bg-zinc-900/80 border border-zinc-800/80 text-xs hover:border-zinc-700 transition';
+          row.innerHTML = `
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span class="w-1.5 h-1.5 rounded-full ${isIncome ? 'bg-green-500' : (isExceeding ? 'bg-red-500' : 'bg-orange-500')} shrink-0"></span>
+              <div class="truncate">
+                <div class="flex items-center gap-1.5 truncate">
+                  <p class="font-medium text-zinc-200 truncate">${escapeHtml(t.category)}</p>
+                  ${recurrenceBadge}
+                </div>
+                <p class="text-[10px] text-zinc-500 truncate">${escapeHtml(t.accountName || 'Счёт')} ${t.note ? `• ${escapeHtml(t.note)}` : ''}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-mono font-medium ${colorClass}">${sign}${Number(t.amount).toLocaleString('ru-RU')} ${sym}</span>
+              <button onclick="deleteTransaction('${t.id}')" title="Удалить запись" class="text-zinc-500 hover:text-red-400 text-xs p-1 leading-none">&times;</button>
+            </div>
+          `;
+          groupEl.appendChild(row);
+        });
+
+        container.appendChild(groupEl);
+      });
+    }
+
+    function deleteTransaction(txId) {
+      const idx = transactions.findIndex(t => t.id === txId);
+      if (idx === -1) return;
+
+      const tx = transactions[idx];
+      const acc = accounts.find(a => a.id === tx.accountId);
+      if (acc) {
+        if (tx.type === 'income') {
+          acc.balance -= tx.amount;
+        } else {
+          acc.balance += tx.amount;
+        }
+      }
+
+      transactions.splice(idx, 1);
+      saveState();
+      renderJournal();
+      showToast('Запись удалена');
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      ['all', 'income', 'expense'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (!btn) return;
+        if (f === filter) {
+          btn.className = 'px-2 py-0.5 rounded font-medium bg-zinc-700 text-white';
+        } else {
+          btn.className = 'px-2 py-0.5 rounded font-medium text-zinc-400 hover:text-zinc-200';
+        }
+      });
+      renderJournal();
+    }
+
+    // --- Управление Счетами ---
+    function renderAccounts() {
+      const container = document.getElementById('accountsListContainer');
+      const sym = getCurrencySymbol();
+      container.innerHTML = '';
+
+      accounts.forEach(acc => {
+        const scope = acc.currencyScope || 'all';
+        const isHidden = !!acc.isHidden;
+        const isActiveForCur = isAccountActiveForCurrentCurrency(acc);
+
+        const isLimitExceeded = !!(acc.limit && Number(acc.limit) > 0 && getAccountCurrentMonthExpense(acc.id) > Number(acc.limit));
+
+        const row = document.createElement('div');
+        // При исчерпании лимита — сдержанная графитовая карточка с лёгкой тёплой подсветкой
+        const cardBgClass = isLimitExceeded
+          ? 'bg-zinc-800/80 border-zinc-600/70 text-zinc-200'
+          : (isActiveForCur ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-900/60 border-zinc-800/40 opacity-60');
+
+        row.className = `relative flex items-center justify-between p-3 rounded-xl border transition ${cardBgClass} text-xs`;
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="relative shrink-0">
+              ${getAccountIconSvg(acc.type)}
+              ${isHidden ? `<span title="Скрыт на панели" class="absolute -bottom-1 -right-1 text-[9px] text-zinc-400 bg-zinc-950 rounded-full px-0.5">👁‍🗨</span>` : ''}
+            </div>
+            <div class="truncate">
+              <div class="flex items-center gap-1.5 truncate">
+                <p class="font-medium text-zinc-200 truncate">${escapeHtml(acc.name)}</p>
+                ${isHidden ? `<span class="text-[9px] font-mono text-zinc-500 uppercase">(скрыт)</span>` : ''}
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <p class="text-[10px] text-zinc-400 font-mono">${Number(acc.balance).toLocaleString('ru-RU')} ${sym}</p>
+                ${renderAccountBatteryBadge(acc)}
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="cycleAccountCurrencyScope('${acc.id}', event)" title="Привязка валюты: нажмите для переключения (общ / ru / us)" class="px-2 py-0.5 rounded-md text-[10px] font-mono uppercase font-semibold border transition active:scale-95 ${
+              scope === 'all'
+                ? 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:border-zinc-500 scope-btn-all'
+                : scope === 'ru'
+                ? 'bg-emerald-950/70 text-emerald-300 border-emerald-800 hover:border-emerald-600 scope-btn-ru'
+                : 'bg-sky-950/70 text-sky-300 border-sky-800 hover:border-sky-600 scope-btn-us'
+            }">
+              ${scope === 'all' ? 'общ' : scope}
+            </button>
+
+            <div class="relative">
+              <button onclick="toggleAccountMenu('${acc.id}', event)" class="p-1 text-zinc-400 hover:text-zinc-200 transition font-bold leading-none text-base">
+                ••
+              </button>
+              <div id="acc-menu-${acc.id}" class="hidden absolute right-0 mt-1 w-36 bg-zinc-950 border border-zinc-700 rounded-xl shadow-2xl py-1 z-30 text-[11px]">
+                <button onclick="toggleHideAccount('${acc.id}')" class="w-full text-left px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 flex items-center gap-1.5">
+                  <span>${isHidden ? 'Показать на панели' : 'Скрыть с панели'}</span>
+                </button>
+                <button onclick="openEditAccountModal('${acc.id}')" class="w-full text-left px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 flex items-center gap-1.5">
+                  <span>Редактировать</span>
+                </button>
+                <button onclick="deleteAccount('${acc.id}')" class="w-full text-left px-3 py-1.5 text-red-400 hover:bg-zinc-800 flex items-center gap-1.5 border-t border-zinc-800">
+                  <span>Удалить</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function toggleHideAccount(accId) {
+      const acc = accounts.find(a => a.id === accId);
+      if (!acc) return;
+      acc.isHidden = !acc.isHidden;
+      saveState();
+      renderAccounts();
+      showToast(acc.isHidden ? 'Счёт скрыт с панели баланса' : 'Счёт теперь виден на панели');
+    }
+
+    function cycleAccountCurrencyScope(accId, event) {
+      if (event) event.stopPropagation();
+      const acc = accounts.find(a => a.id === accId);
+      if (!acc) return;
+
+      const current = acc.currencyScope || 'all';
+      let next = 'all';
+      if (current === 'all') next = 'ru';
+      else if (current === 'ru') next = 'us';
+      else next = 'all';
+
+      const hadLimit = !!acc.limit;
+      if (hadLimit) {
+        delete acc.limit;
+      }
+
+      acc.currencyScope = next;
+      saveState();
+      renderAccounts();
+      populateLimitAccountSelect();
+
+      if (hadLimit) {
+        showToast(`Режим: ${next === 'all' ? 'Общий (общ)' : next.toUpperCase()}. Лимит счёта сброшен.`);
+      } else {
+        showToast(`Режим счёта: ${next === 'all' ? 'Общий (общ)' : next.toUpperCase()}`);
+      }
+    }
+
+    function toggleAccountMenu(accId, event) {
+      event.stopPropagation();
+      if (activeAccountMenuId && activeAccountMenuId !== accId) {
+        const prev = document.getElementById(`acc-menu-${activeAccountMenuId}`);
+        if (prev) prev.classList.add('hidden');
+      }
+
+      const menu = document.getElementById(`acc-menu-${accId}`);
+      if (menu) {
+        menu.classList.toggle('hidden');
+        activeAccountMenuId = menu.classList.contains('hidden') ? null : accId;
+      }
+    }
+
+    document.addEventListener('click', () => {
+      if (activeAccountMenuId) {
+        const prev = document.getElementById(`acc-menu-${activeAccountMenuId}`);
+        if (prev) prev.classList.add('hidden');
+        activeAccountMenuId = null;
+      }
+    });
+
+    function renderIconPicker() {
+      const picker = document.getElementById('accountIconPicker');
+      picker.innerHTML = '';
+      Object.keys(ACCOUNT_ICONS).forEach(key => {
+        const item = ACCOUNT_ICONS[key];
+        const isSelected = key === selectedNewAccountIcon;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          selectedNewAccountIcon = key;
+          renderIconPicker();
+        };
+        btn.className = `flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs gap-1 transition ${
+          isSelected 
+            ? 'bg-zinc-800 border-zinc-400 text-white shadow-inner' 
+            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+        }`;
+        btn.innerHTML = `${item.svg}<span class="text-[10px]">${item.label}</span>`;
+        picker.appendChild(btn);
+      });
+    }
+
+    function renderEditIconPicker() {
+      const picker = document.getElementById('editAccountIconPicker');
+      picker.innerHTML = '';
+      Object.keys(ACCOUNT_ICONS).forEach(key => {
+        const item = ACCOUNT_ICONS[key];
+        const isSelected = key === selectedEditAccountIcon;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          selectedEditAccountIcon = key;
+          renderEditIconPicker();
+        };
+        btn.className = `flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs gap-1 transition ${
+          isSelected 
+            ? 'bg-zinc-800 border-zinc-400 text-white shadow-inner' 
+            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+        }`;
+        btn.innerHTML = `${item.svg}<span class="text-[10px]">${item.label}</span>`;
+        picker.appendChild(btn);
+      });
+    }
+
+    function saveNewAccount() {
+      const nameInput = document.getElementById('newAccName');
+      const balInput = document.getElementById('newAccBalance');
+      const name = nameInput.value.trim();
+      const bal = parseFloat(balInput.value) || 0;
+
+      if (!name) {
+        showToast('Введите название счёта');
+        return;
+      }
+
+      const newAcc = {
+        id: 'acc_' + Date.now(),
+        name: name,
+        balance: bal,
+        type: selectedNewAccountIcon,
+        isHidden: false,
+        currencyScope: 'all'
+      };
+
+      accounts.push(newAcc);
+      nameInput.value = '';
+      balInput.value = '';
+      saveState();
+      closeModal('addAccountModal');
+      renderAccounts();
+      showToast('Счёт создан');
+    }
+
+    function openEditAccountModal(accId) {
+      const acc = accounts.find(a => a.id === accId);
+      if (!acc) return;
+
+      document.getElementById('editAccountId').value = acc.id;
+      document.getElementById('editAccName').value = acc.name;
+      document.getElementById('editAccBalance').value = acc.balance;
+      selectedEditAccountIcon = acc.type || 'card';
+
+      renderEditIconPicker();
+      openModal('editAccountModal');
+    }
+
+    function saveEditedAccount() {
+      const accId = document.getElementById('editAccountId').value;
+      const acc = accounts.find(a => a.id === accId);
+      if (!acc) return;
+
+      const name = document.getElementById('editAccName').value.trim();
+      const bal = parseFloat(document.getElementById('editAccBalance').value);
+
+      if (!name) {
+        showToast('Название не может быть пустым');
+        return;
+      }
+
+      acc.name = name;
+      acc.balance = isNaN(bal) ? acc.balance : bal;
+      acc.type = selectedEditAccountIcon;
+
+      saveState();
+      closeModal('editAccountModal');
+      renderAccounts();
+      showToast('Счёт обновлен');
+    }
+
+    function deleteAccount(accId) {
+      if (accounts.length <= 1) {
+        showToast('Нельзя удалить единственный счёт');
+        return;
+      }
+      accounts = accounts.filter(a => a.id !== accId);
+      saveState();
+      renderAccounts();
+      showToast('Счёт удалён');
+    }
+
+    // --- Категории и Лимиты ---
+    function renderCategoryEditor() {
+      const isExp = currentCategoryEditorType === 'expense';
+      const list = isExp ? expenseCategories : incomeCategories;
+      const container = document.getElementById('categoriesEditorList');
+      container.innerHTML = '';
+
+      list.forEach(cat => {
+        const tag = document.createElement('div');
+        tag.className = 'flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300';
+        tag.innerHTML = `
+          <span>${escapeHtml(cat)}</span>
+          <button onclick="deleteCategory('${escapeHtml(cat)}')" class="text-zinc-500 hover:text-red-400 font-bold ml-1">&times;</button>
+        `;
+        container.appendChild(tag);
+      });
+    }
+
+    function switchCategoryEditorType(type) {
+      currentCategoryEditorType = type;
+      const expBtn = document.getElementById('cat-type-expense');
+      const incBtn = document.getElementById('cat-type-income');
+      if (type === 'expense') {
+        expBtn.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-orange-600 text-white transition';
+        incBtn.className = 'px-2 py-0.5 rounded text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition';
+      } else {
+        expBtn.className = 'px-2 py-0.5 rounded text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition';
+        incBtn.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-green-700 text-white transition';
+      }
+      renderCategoryEditor();
+    }
+
+    function addCustomCategory(event) {
+      event.preventDefault();
+      const input = document.getElementById('newCategoryInput');
+      const val = input.value.trim();
+      if (!val) return;
+
+      if (currentCategoryEditorType === 'expense') {
+        if (!expenseCategories.includes(val)) expenseCategories.push(val);
+      } else {
+        if (!incomeCategories.includes(val)) incomeCategories.push(val);
+      }
+
+      input.value = '';
+      saveState();
+      renderCategoryEditor();
+      showToast('Категория добавлена');
+    }
+
+    function deleteCategory(cat) {
+      if (currentCategoryEditorType === 'expense') {
+        if (expenseCategories.length <= 1) return showToast('Минимум 1 категория');
+        expenseCategories = expenseCategories.filter(c => c !== cat);
+      } else {
+        if (incomeCategories.length <= 1) return showToast('Минимум 1 категория');
+        incomeCategories = incomeCategories.filter(c => c !== cat);
+      }
+      saveState();
+      renderCategoryEditor();
+    }
+
+    function initLimitsUI() {
+      const sym = getCurrencySymbol();
+      const monthInput = document.getElementById('monthlyExpenseLimitInput');
+      const pctInput = document.getElementById('maxExpensePercentInput');
+      const indLimit = document.getElementById('limitExpenseIndicator');
+      const indPct = document.getElementById('limitPercentIndicator');
+
+      monthInput.value = spendingLimits.monthlyLimit || '';
+      pctInput.value = spendingLimits.maxExpensePercent || 10;
+      indLimit.textContent = `${Number(spendingLimits.monthlyLimit || 0).toLocaleString('ru-RU')} ${sym}`;
+      indPct.textContent = `${spendingLimits.maxExpensePercent || 10}%`;
+
+      populateLimitAccountSelect();
+    }
+
+    function populateLimitAccountSelect() {
+      const select = document.getElementById('limitAccountSelect');
+      if (!select) return;
+      
+      const currentSelected = select.value;
+      const eligibleAccounts = accounts.filter(isAccountActiveForCurrentCurrency);
+
+      if (eligibleAccounts.length === 0) {
+        select.innerHTML = `<option value="">Нет счетов для версии ${currentCurrency.toUpperCase()}</option>`;
+        const input = document.getElementById('accountLimitAmountInput');
+        if (input) input.value = '';
+        return;
+      }
+
+      select.innerHTML = eligibleAccounts.map(a => {
+        const limText = a.limit ? ` [лимит: ${Number(a.limit).toLocaleString('ru-RU')} ${getCurrencySymbol()}]` : '';
+        return `<option value="${a.id}">${escapeHtml(a.name)}${limText}</option>`;
+      }).join('');
+
+      if (currentSelected && eligibleAccounts.some(a => a.id === currentSelected)) {
+        select.value = currentSelected;
+      } else {
+        select.value = eligibleAccounts[0].id;
+      }
+      onLimitAccountChange();
+    }
+
+    function onLimitAccountChange() {
+      const select = document.getElementById('limitAccountSelect');
+      const input = document.getElementById('accountLimitAmountInput');
+      if (!select || !input) return;
+      const acc = accounts.find(a => a.id === select.value);
+      input.value = (acc && acc.limit) ? acc.limit : '';
+    }
+
+    function saveAccountLimit() {
+      const select = document.getElementById('limitAccountSelect');
+      const input = document.getElementById('accountLimitAmountInput');
+      if (!select || !input) return;
+
+      const acc = accounts.find(a => a.id === select.value);
+      if (!acc) {
+        showToast('Выберите счёт');
+        return;
+      }
+
+      const val = parseFloat(input.value);
+      if (isNaN(val) || val <= 0) {
+        delete acc.limit;
+        input.value = '';
+        showToast(`Лимит для счёта «${acc.name}» снят`);
+      } else {
+        acc.limit = val;
+        showToast(`Установлен новый лимит: ${val.toLocaleString('ru-RU')} ${getCurrencySymbol()} для «${acc.name}»`);
+      }
+
+      saveState();
+      populateLimitAccountSelect();
+      renderAccounts();
+    }
+
+    function clearAccountLimit() {
+      const select = document.getElementById('limitAccountSelect');
+      const input = document.getElementById('accountLimitAmountInput');
+      if (!select) return;
+      const acc = accounts.find(a => a.id === select.value);
+      if (acc) {
+        delete acc.limit;
+        if (input) input.value = '';
+        saveState();
+        populateLimitAccountSelect();
+        renderAccounts();
+        showToast(`Лимит для «${acc.name}» полностью отключён`);
+      }
+    }
+
+    function updateSpendingLimits() {
+      const monthInput = document.getElementById('monthlyExpenseLimitInput');
+      const pctInput = document.getElementById('maxExpensePercentInput');
+
+      spendingLimits.monthlyLimit = parseFloat(monthInput.value) || 0;
+      spendingLimits.maxExpensePercent = Math.max(1, Math.min(100, parseInt(pctInput.value) || 10));
+
+      saveState();
+      initLimitsUI();
+      showToast('Лимиты обновлены');
+    }
+
+    // --- Уведомления и Цитаты ---
+    function updateReminderStatusUI() {
+      const dot = document.getElementById('notifStatusDot');
+      const badge = document.getElementById('badgePushPermission');
+      const labelText = document.getElementById('notifStatusText');
+
+      if (labelText) {
+        labelText.textContent = careSettings.enabled ? careSettings.time : 'Выкл';
+      }
+
+      if (!('Notification' in window)) {
+        if (badge) badge.textContent = 'Не поддерживается';
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-zinc-600';
+        return;
+      }
+
+      if (Notification.permission === 'granted') {
+        if (badge) {
+          badge.textContent = 'Включены';
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-green-950/80 text-green-400 border border-green-800';
+          badge.removeAttribute('data-denied');
+        }
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-green-500';
+      } else if (Notification.permission === 'denied') {
+        if (badge) {
+          badge.textContent = 'Заблокировано';
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-red-950/80 text-red-400 border border-red-800';
+          badge.setAttribute('data-denied', 'true');
+        }
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+      } else {
+        if (badge) {
+          badge.textContent = 'Требуется доступ';
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-950/80 text-amber-400 border border-amber-800';
+          badge.removeAttribute('data-denied');
+        }
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse';
+      }
+    }
+
+    function requestNotificationAccess() {
+      if (!('Notification' in window)) {
+        showToast('Ваш браузер не поддерживает Web Notifications');
+        return;
+      }
+      Notification.requestPermission().then(permission => {
+        updateReminderStatusUI();
+        if (permission === 'granted') {
+          showToast('Уведомления успешно разрешены');
+        } else {
+          showToast('Доступ к уведомлениям отклонён');
+        }
+      });
+    }
+
+    function sendPushNotification(title, body) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, {
+            body: body,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2318181b"><rect width="24" height="24" rx="6"/><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8zm11 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" fill="%23ffffff"/></svg>',
+            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><circle cx="12" cy="12" r="10"/></svg>'
+          });
+        });
+      } else {
+        new Notification(title, { body: body });
+      }
+    }
+
+    function initCareUI() {
+      const toggle = document.getElementById('careNotifToggle');
+      const freq = document.getElementById('careFrequencySelect');
+      const time = document.getElementById('careTimeInput');
+      if (toggle) toggle.checked = !!careSettings.enabled;
+      if (freq) freq.value = careSettings.frequency || '48h';
+      if (time) time.value = careSettings.time || '21:00';
+    }
+
+    function toggleCareNotifications(enabled) {
+      careSettings.enabled = enabled;
+      saveCareSettings();
+      if (enabled && Notification.permission !== 'granted') {
+        requestNotificationAccess();
+      }
+      showToast(enabled ? 'Напоминания о кошельке включены' : 'Напоминания о кошельке отключены');
+      updateReminderStatusUI();
+    }
+
+    function saveCareSettings() {
+      careSettings.enabled = document.getElementById('careNotifToggle').checked;
+      careSettings.frequency = document.getElementById('careFrequencySelect').value;
+      careSettings.time = document.getElementById('careTimeInput').value;
+      localStorage.setItem(STORAGE_KEY_CARE_SETTINGS, JSON.stringify(careSettings));
+      updateReminderStatusUI();
+    }
+
+    function triggerDirectCareTest() {
+      const text = 'Минутка для кошелька: запишите доходы и расходы за день, чтобы финансы оставались в полном порядке ✨';
+      showToast(`🔔 Напоминание: ${text}`);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        sendPushNotification('Wallet: Забота о финансах', text);
+      } else {
+        requestNotificationAccess();
+      }
+    }
+
+    function initWisdomUI() {
+      document.getElementById('wisdomNotifToggle').checked = !!wisdomSettings.enabled;
+      document.getElementById('wisdomFrequencySelect').value = wisdomSettings.frequency || '24h';
+      document.getElementById('wisdomTimeInput').value = wisdomSettings.time || '10:00';
+    }
+
+    function toggleWisdomNotifications(enabled) {
+      wisdomSettings.enabled = enabled;
+      saveWisdomSettings();
+      if (enabled && Notification.permission !== 'granted') {
+        requestNotificationAccess();
+      }
+      showToast(enabled ? 'Уведомления с советами включены' : 'Уведомления с советами выключены');
+    }
+
+    function saveWisdomSettings() {
+      wisdomSettings.enabled = document.getElementById('wisdomNotifToggle').checked;
+      wisdomSettings.frequency = document.getElementById('wisdomFrequencySelect').value;
+      wisdomSettings.time = document.getElementById('wisdomTimeInput').value;
+      localStorage.setItem(STORAGE_KEY_WISDOM_SETTINGS, JSON.stringify(wisdomSettings));
+    }
+
+    function rotateWisdomPreview() {
+      currentWisdomIndex = (currentWisdomIndex + 1) % FINANCIAL_WISDOM.length;
+      const item = FINANCIAL_WISDOM[currentWisdomIndex];
+      document.getElementById('wisdomQuoteText').textContent = `«${item.quote}»`;
+      document.getElementById('wisdomQuoteAuthor').textContent = `— ${item.author}`;
+    }
+
+    function triggerWisdomTestNotification() {
+      const item = FINANCIAL_WISDOM[currentWisdomIndex];
+      const text = `💡 «${item.quote}» — ${item.author}`;
+      showToast(`🔔 Совет: ${text}`);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        sendPushNotification('Wallet: Финансовый совет', text);
+      } else {
+        requestNotificationAccess();
+      }
+      rotateWisdomPreview();
+    }
+
+    function checkScheduledNotificationLogic() {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+      const now = new Date();
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+      const nowMs = Date.now();
+
+      if (careSettings.enabled && careSettings.time === currentTimeStr) {
+        const minIntervalHours = careSettings.frequency === '48h' ? 40 : 20;
+        const lastSent = parseInt(localStorage.getItem('wallet_pwa_last_care_sent') || '0', 10);
+        
+        if (nowMs - lastSent > (minIntervalHours * 60 * 60 * 1000)) {
+          sendPushNotification(
+            'Wallet: Забота о финансах',
+            'Минутка для кошелька: запишите доходы и расходы за день, чтобы финансы оставались в полном порядке ✨'
+          );
+          localStorage.setItem('wallet_pwa_last_care_sent', nowMs.toString());
+        }
+      }
+
+      if (wisdomSettings.enabled && wisdomSettings.time === currentTimeStr) {
+        const minWisdomIntervalHours = wisdomSettings.frequency === '48h' ? 40 : 20;
+        const lastWisdomSent = parseInt(localStorage.getItem('wallet_pwa_last_wisdom_sent') || '0', 10);
+        
+        if (nowMs - lastWisdomSent > (minWisdomIntervalHours * 60 * 60 * 1000)) {
+          const item = FINANCIAL_WISDOM[Math.floor(Math.random() * FINANCIAL_WISDOM.length)];
+          sendPushNotification(
+            'Wallet: Финансовый совет',
+            `«${item.quote}» — ${item.author}`
+          );
+          localStorage.setItem('wallet_pwa_last_wisdom_sent', nowMs.toString());
+        }
+      }
+    }
+
+    // --- Экспорт / Импорт ---
+    function exportCSV() {
+      if (transactions.length === 0) {
+        showToast('Журнал пуст');
+        return;
+      }
+      const headers = ['ID', 'Тип', 'Сумма', 'Счёт', 'Категория', 'Регулярность', 'Дата', 'Комментарий'];
+      const rows = transactions.map(t => [
+        t.id,
+        t.type === 'income' ? 'Доход' : 'Расход',
+        t.amount,
+        `"${t.accountName || ''}"`,
+        `"${t.category || ''}"`,
+        `"${RECURRENCE_LABELS[t.recurrence] || ''}"`,
+        t.date,
+        `"${(t.note || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `wallet_export_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      showToast('CSV успешно экспортирован');
+    }
+
+    function exportJSON() {
+      const data = {
+        accounts,
+        transactions,
+        incomeCategories,
+        expenseCategories,
+        spendingLimits,
+        currentCurrency,
+        currentTheme,
+        exportedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `wallet_backup_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      showToast('Резервная копия сохранена');
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.accounts && imported.transactions) {
+            accounts = imported.accounts;
+            transactions = imported.transactions;
+            if (imported.incomeCategories) incomeCategories = imported.incomeCategories;
+            if (imported.expenseCategories) expenseCategories = imported.expenseCategories;
+            if (imported.spendingLimits) spendingLimits = imported.spendingLimits;
+            if (imported.currentCurrency) currentCurrency = imported.currentCurrency;
+            if (imported.currentTheme) applyTheme(imported.currentTheme);
+
+            saveState();
+            updateCurrencyUI();
+            initLimitsUI();
+            renderAccounts();
+            renderCategoryEditor();
+            renderJournal();
+            showToast('Данные успешно импортированы');
+          } else {
+            showToast('Неверная структура резервной копии');
+          }
+        } catch (err) {
+          showToast('Ошибка чтения файла');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // --- Регистрация PWA ---
+    function initPWA() {
+      const manifest = {
+        name: "Wallet — Персональный учёт",
+        short_name: "Wallet",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#09090b",
+        theme_color: "#121214",
+        icons: [
+          {
+            src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%23121214'><rect width='192' height='192' rx='40' fill='%2318181b'/><path d='M32 64a16 16 0 0 1 16-16h96a16 16 0 0 1 16 16v64a16 16 0 0 1-16 16H48a16 16 0 0 1-16-16V64zm88 32a8 8 0 1 0 0 16 8 8 0 0 0 0-16z' fill='%23ffffff'/></svg>",
+            sizes: "192x192",
+            type: "image/svg+xml"
+          }
+        ]
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = URL.createObjectURL(manifestBlob);
+      document.head.appendChild(manifestLink);
+
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          self.addEventListener('install', e => self.skipWaiting());
+          self.addEventListener('activate', e => self.clients.claim());
+          self.addEventListener('notificationclick', e => {
+            e.notification.close();
+            e.waitUntil(
+              clients.matchAll({ type: 'window' }).then(clientList => {
+                if (clientList.length > 0) return clientList[0].focus();
+                return clients.openWindow('/');
+              })
+            );
+          });
+        `;
+        try {
+          const swBlob = new Blob([swCode], { type: 'application/javascript' });
+          const swUrl = URL.createObjectURL(swBlob);
+          navigator.serviceWorker.register(swUrl).catch(() => {});
+        } catch (e) {}
+      }
+    }
+
+    // --- Старт приложения ---
+    window.addEventListener('DOMContentLoaded', () => {
+      // Устанавливаем сегодняшний день как максимальную допустимую дату для предотвращения выбора будущих дней
+      const today = new Date().toISOString().split('T')[0];
+      const incDate = document.getElementById('incomeDate');
+      const expDate = document.getElementById('expenseDate');
+
+      if (incDate) {
+        incDate.value = today;
+        incDate.max = today;
+      }
+      if (expDate) {
+        expDate.value = today;
+        expDate.max = today;
+      }
+
+      applyTheme(currentTheme);
+      initPWA();
+      updateCurrencyUI();
+      renderSummary();
+      renderAccounts();
+      renderCategoryEditor();
+      renderJournal();
+      updateReminderStatusUI();
+      initLimitsUI();
+      initCareUI();
+      initWisdomUI();
+      checkScheduledNotificationLogic();
+
+      setInterval(checkScheduledNotificationLogic, 60 * 1000);
+    });
+  </script>
+</body>
+</html>
